@@ -1,0 +1,32 @@
+{
+  "agent_name": "Appointment Scheduler Agent",
+  "agent_id": "69a30a349584b911c2613447",
+  "description": "Creates calendar events based on appointment details extracted from call transcripts. Books the appointment after user reviews and confirms the details.",
+  "agent_type": "json",
+  "accessor": "result",
+  "auto_generated": true,
+  "response_schema": {
+    "booking_status": "string",
+    "event_title": "string",
+    "event_date": "string",
+    "event_time": "string",
+    "event_duration": "string",
+    "attendee_name": "string",
+    "purpose": "string",
+    "event_id": "string",
+    "event_link": "string",
+    "message": "string"
+  },
+  "example_response": {
+    "booking_status": "Status of the booking: confirmed, failed, or pending",
+    "event_title": "Title of the calendar event",
+    "event_date": "Date of the appointment",
+    "event_time": "Time of the appointment",
+    "event_duration": "Duration of the appointment",
+    "attendee_name": "Name of the attendee/caller",
+    "purpose": "Purpose of the appointment",
+    "event_id": "Google Calendar event ID",
+    "event_link": "Link to the Google Calendar event",
+    "message": "Confirmation or error message"
+  }
+}

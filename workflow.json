@@ -1,0 +1,42 @@
+{
+  "nodes": [
+    {
+      "id": "input_node",
+      "type": "Input",
+      "label": "Inbound Call",
+      "nodeCategory": "input"
+    },
+    {
+      "id": "voice_receptionist",
+      "type": "Agent",
+      "label": "Voice Receptionist Agent",
+      "nodeCategory": "agent"
+    },
+    {
+      "id": "appointment_scheduler",
+      "type": "Agent",
+      "label": "Appointment Scheduler Agent",
+      "nodeCategory": "agent"
+    },
+    {
+      "id": "output_node",
+      "type": "Output",
+      "label": "Response Output",
+      "nodeCategory": "end"
+    }
+  ],
+  "edges": [
+    {
+      "source": "input_node",
+      "target": "voice_receptionist"
+    },
+    {
+      "source": "voice_receptionist",
+      "target": "appointment_scheduler"
+    },
+    {
+      "source": "appointment_scheduler",
+      "target": "output_node"
+    }
+  ]
+}
