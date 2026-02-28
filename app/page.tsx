@@ -2,9 +2,6 @@
 
 import React, { useState, useEffect, useCallback } from 'react'
 import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
-import { ScrollArea } from '@/components/ui/scroll-area'
-import { Separator } from '@/components/ui/separator'
 import { RiDashboardLine, RiPhoneLine, RiSettings3Line, RiNotification3Line, RiSignalWifiLine, RiSignalWifiOffLine, RiRobot2Line, RiCalendarCheckLine } from 'react-icons/ri'
 
 import DashboardSection from './sections/DashboardSection'
@@ -14,65 +11,8 @@ import VoiceCallModal from './sections/VoiceCallModal'
 
 import type { CallRecord } from './sections/DashboardSection'
 
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean; error: string }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props)
-    this.state = { hasError: false, error: '' }
-  }
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error: error.message }
-  }
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-          <div className="text-center p-8 max-w-md">
-            <h2 className="text-xl font-semibold mb-2">Something went wrong</h2>
-            <p className="text-muted-foreground mb-4 text-sm">{this.state.error}</p>
-            <button onClick={() => this.setState({ hasError: false, error: '' })} className="px-4 py-2 bg-primary text-primary-foreground rounded-md text-sm">Try again</button>
-          </div>
-        </div>
-      )
-    }
-    return this.props.children
-  }
-}
-
-const THEME_VARS = {
-  '--background': '350 30% 98%',
-  '--foreground': '350 30% 10%',
-  '--card': '350 30% 96%',
-  '--card-foreground': '350 30% 10%',
-  '--popover': '350 30% 94%',
-  '--primary': '346 77% 50%',
-  '--primary-foreground': '350 30% 98%',
-  '--secondary': '350 25% 92%',
-  '--secondary-foreground': '350 30% 15%',
-  '--accent': '330 65% 45%',
-  '--accent-foreground': '350 30% 98%',
-  '--destructive': '0 84% 60%',
-  '--muted': '350 20% 90%',
-  '--muted-foreground': '350 20% 45%',
-  '--border': '350 25% 88%',
-  '--input': '350 20% 80%',
-  '--ring': '346 77% 50%',
-  '--radius': '0.875rem',
-  '--sidebar-background': '350 28% 95%',
-  '--sidebar-foreground': '350 30% 10%',
-  '--sidebar-border': '350 25% 88%',
-  '--sidebar-primary': '346 77% 50%',
-  '--sidebar-primary-foreground': '350 30% 98%',
-  '--sidebar-accent': '350 25% 90%',
-  '--sidebar-accent-foreground': '350 30% 10%',
-  '--chart-1': '346 77% 50%',
-  '--chart-2': '330 65% 45%',
-  '--chart-3': '10 70% 55%',
-  '--chart-4': '320 55% 50%',
-  '--chart-5': '0 60% 55%',
-} as React.CSSProperties
+const VOICE_AGENT_ID = '69a30a159584b911c2613442'
+const APPOINTMENT_AGENT_ID = '69a30a349584b911c2613447'
 
 const SAMPLE_CALLS: CallRecord[] = [
   {
@@ -156,14 +96,11 @@ const SAMPLE_CALLS: CallRecord[] = [
   },
 ]
 
-const VOICE_AGENT_ID = '69a30a159584b911c2613442'
-const APPOINTMENT_AGENT_ID = '69a30a349584b911c2613447'
-
 const NAV_ITEMS = [
   { id: 'dashboard', label: 'Dashboard', icon: RiDashboardLine },
   { id: 'calllog', label: 'Call Log', icon: RiPhoneLine },
   { id: 'settings', label: 'Settings', icon: RiSettings3Line },
-]
+] as const
 
 export default function Page() {
   const [activeScreen, setActiveScreen] = useState('dashboard')
@@ -172,8 +109,10 @@ export default function Page() {
   const [isActive, setIsActive] = useState(true)
   const [voiceModalOpen, setVoiceModalOpen] = useState(false)
   const [activeAgentId, setActiveAgentId] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    setMounted(true)
     try {
       const stored = localStorage.getItem('voicedesk_calls')
       if (stored) {
@@ -183,16 +122,18 @@ export default function Page() {
           return
         }
       }
-    } catch {}
+    } catch {
+      // ignore parse errors
+    }
     setCalls(SAMPLE_CALLS)
     localStorage.setItem('voicedesk_calls', JSON.stringify(SAMPLE_CALLS))
   }, [])
 
   useEffect(() => {
-    if (calls.length > 0) {
+    if (calls.length > 0 && mounted) {
       localStorage.setItem('voicedesk_calls', JSON.stringify(calls))
     }
-  }, [calls])
+  }, [calls, mounted])
 
   const handleUpdateCall = useCallback((updated: CallRecord) => {
     setCalls(prev => prev.map(c => c.id === updated.id ? updated : c))
@@ -207,118 +148,159 @@ export default function Page() {
     if (callId) setSelectedCallId(callId)
   }, [])
 
+  if (!mounted) {
+    return (
+      <div
+        className="min-h-screen flex items-center justify-center"
+        style={{ background: 'linear-gradient(135deg, hsl(350,35%,97%) 0%, hsl(340,30%,95%) 35%, hsl(330,25%,96%) 70%, hsl(355,30%,97%) 100%)' }}
+      >
+        <div className="text-center">
+          <div className="h-10 w-10 rounded-xl bg-[hsl(346,77%,50%)] flex items-center justify-center mx-auto mb-3">
+            <RiPhoneLine className="h-6 w-6 text-white" />
+          </div>
+          <p className="text-sm" style={{ color: 'hsl(350,20%,45%)' }}>Loading VoiceDesk AI...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <ErrorBoundary>
-      <div style={THEME_VARS} className="min-h-screen bg-background text-foreground font-sans" >
-        <div className="flex h-screen" style={{ background: 'linear-gradient(135deg, hsl(350,35%,97%) 0%, hsl(340,30%,95%) 35%, hsl(330,25%,96%) 70%, hsl(355,30%,97%) 100%)' }}>
-          {/* Sidebar */}
-          <aside className="w-64 flex-shrink-0 bg-white/75 backdrop-blur-md border-r border-border/50 flex flex-col">
-            <div className="p-5">
-              <div className="flex items-center gap-2">
-                <div className="h-9 w-9 rounded-xl bg-[hsl(346,77%,50%)] flex items-center justify-center">
-                  <RiPhoneLine className="h-5 w-5 text-white" />
-                </div>
-                <div>
-                  <h1 className="text-base font-bold tracking-tight leading-tight">VoiceDesk AI</h1>
-                  <p className="text-[10px] text-muted-foreground">AI Receptionist</p>
-                </div>
+    <div
+      className="min-h-screen font-sans"
+      style={{ background: 'linear-gradient(135deg, hsl(350,35%,97%) 0%, hsl(340,30%,95%) 35%, hsl(330,25%,96%) 70%, hsl(355,30%,97%) 100%)' }}
+    >
+      <div className="flex h-screen">
+        {/* Sidebar */}
+        <aside
+          className="w-64 flex-shrink-0 flex flex-col"
+          style={{
+            background: 'rgba(255,255,255,0.75)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
+            borderRight: '1px solid hsl(350,25%,88%)',
+          }}
+        >
+          <div className="p-5">
+            <div className="flex items-center gap-2">
+              <div className="h-9 w-9 rounded-xl bg-[hsl(346,77%,50%)] flex items-center justify-center">
+                <RiPhoneLine className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-base font-semibold tracking-tight leading-tight" style={{ color: 'hsl(350,30%,10%)' }}>VoiceDesk AI</h1>
+                <p className="text-[10px]" style={{ color: 'hsl(350,20%,45%)' }}>AI Receptionist</p>
               </div>
             </div>
+          </div>
 
-            <Separator className="mx-4" />
+          <div className="mx-4 h-px" style={{ background: 'hsl(350,25%,88%)' }} />
 
-            <nav className="flex-1 p-3 space-y-1">
-              {NAV_ITEMS.map(item => (
+          <nav className="flex-1 p-3 space-y-1">
+            {NAV_ITEMS.map(item => {
+              const isActiveNav = activeScreen === item.id
+              return (
                 <button
                   key={item.id}
                   onClick={() => setActiveScreen(item.id)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${activeScreen === item.id ? 'bg-[hsl(346,77%,50%)] text-white shadow-md shadow-[hsl(346,77%,50%)]/20' : 'text-foreground hover:bg-muted/60'}`}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200"
+                  style={
+                    isActiveNav
+                      ? { background: 'hsl(346,77%,50%)', color: 'white', boxShadow: '0 4px 12px hsla(346,77%,50%,0.2)' }
+                      : { color: 'hsl(350,30%,10%)' }
+                  }
                 >
                   <item.icon className="h-5 w-5" />
                   {item.label}
                 </button>
-              ))}
-            </nav>
+              )
+            })}
+          </nav>
 
-            <Separator className="mx-4" />
+          <div className="mx-4 h-px" style={{ background: 'hsl(350,25%,88%)' }} />
 
-            {/* Agent Status */}
-            <div className="p-4 space-y-3">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Agents</p>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-xs">
-                  <div className={`h-2 w-2 rounded-full ${activeAgentId === VOICE_AGENT_ID ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
-                  <RiRobot2Line className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-muted-foreground truncate">Voice Receptionist</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                  <div className={`h-2 w-2 rounded-full ${activeAgentId === APPOINTMENT_AGENT_ID ? 'bg-green-500 animate-pulse' : 'bg-muted-foreground/30'}`} />
-                  <RiCalendarCheckLine className="h-3.5 w-3.5 text-muted-foreground" />
-                  <span className="text-muted-foreground truncate">Appointment Scheduler</span>
-                </div>
+          {/* Agent Status */}
+          <div className="p-4 space-y-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'hsl(350,20%,45%)' }}>Agents</p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs">
+                <div className={`h-2 w-2 rounded-full ${activeAgentId === VOICE_AGENT_ID ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
+                <RiRobot2Line className="h-3.5 w-3.5" style={{ color: 'hsl(350,20%,45%)' }} />
+                <span style={{ color: 'hsl(350,20%,45%)' }} className="truncate">Voice Receptionist</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs">
+                <div className={`h-2 w-2 rounded-full ${activeAgentId === APPOINTMENT_AGENT_ID ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`} />
+                <RiCalendarCheckLine className="h-3.5 w-3.5" style={{ color: 'hsl(350,20%,45%)' }} />
+                <span style={{ color: 'hsl(350,20%,45%)' }} className="truncate">Appointment Scheduler</span>
               </div>
             </div>
-          </aside>
+          </div>
+        </aside>
 
-          {/* Main Content */}
-          <main className="flex-1 flex flex-col min-w-0">
-            {/* Header */}
-            <header className="h-14 border-b border-border/50 bg-white/60 backdrop-blur-md flex items-center justify-between px-6 flex-shrink-0">
-              <h2 className="text-sm font-semibold capitalize">{activeScreen === 'calllog' ? 'Call Log' : activeScreen}</h2>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  {isActive ? (
-                    <RiSignalWifiLine className="h-4 w-4 text-green-500" />
-                  ) : (
-                    <RiSignalWifiOffLine className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <span className="text-xs text-muted-foreground">{isActive ? 'Active' : 'Inactive'}</span>
-                  <Switch checked={isActive} onCheckedChange={setIsActive} />
-                </div>
-                <button className="relative p-2 rounded-lg hover:bg-muted/60 transition-colors">
-                  <RiNotification3Line className="h-5 w-5 text-muted-foreground" />
-                  {calls.some(c => c.status === 'new') && (
-                    <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[hsl(346,77%,50%)]" />
-                  )}
-                </button>
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {/* Header */}
+          <header
+            className="h-14 flex items-center justify-between px-6 flex-shrink-0"
+            style={{
+              borderBottom: '1px solid hsl(350,25%,88%)',
+              background: 'rgba(255,255,255,0.6)',
+              backdropFilter: 'blur(16px)',
+              WebkitBackdropFilter: 'blur(16px)',
+            }}
+          >
+            <h2 className="text-sm font-semibold capitalize" style={{ color: 'hsl(350,30%,10%)' }}>
+              {activeScreen === 'calllog' ? 'Call Log' : activeScreen}
+            </h2>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                {isActive ? (
+                  <RiSignalWifiLine className="h-4 w-4 text-green-500" />
+                ) : (
+                  <RiSignalWifiOffLine className="h-4 w-4" style={{ color: 'hsl(350,20%,45%)' }} />
+                )}
+                <span className="text-xs" style={{ color: 'hsl(350,20%,45%)' }}>{isActive ? 'Active' : 'Inactive'}</span>
+                <Switch checked={isActive} onCheckedChange={setIsActive} />
               </div>
-            </header>
+              <button className="relative p-2 rounded-lg transition-colors hover:bg-[hsl(350,20%,90%)]">
+                <RiNotification3Line className="h-5 w-5" style={{ color: 'hsl(350,20%,45%)' }} />
+                {calls.some(c => c.status === 'new') && (
+                  <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[hsl(346,77%,50%)]" />
+                )}
+              </button>
+            </div>
+          </header>
 
-            {/* Screen Content */}
-            <ScrollArea className="flex-1">
-              <div className="p-6">
-                {activeScreen === 'dashboard' && (
-                  <DashboardSection
-                    calls={calls}
-                    onNavigateToCallLog={handleNavigateToCallLog}
-                    onStartCall={() => setVoiceModalOpen(true)}
-                  />
-                )}
-                {activeScreen === 'calllog' && (
-                  <CallLogSection
-                    calls={calls}
-                    selectedCallId={selectedCallId}
-                    onSelectCall={setSelectedCallId}
-                    onUpdateCall={handleUpdateCall}
-                    setActiveAgentId={setActiveAgentId}
-                  />
-                )}
-                {activeScreen === 'settings' && (
-                  <SettingsSection />
-                )}
-              </div>
-            </ScrollArea>
-          </main>
-        </div>
-
-        {/* Voice Call Modal */}
-        <VoiceCallModal
-          open={voiceModalOpen}
-          onClose={() => setVoiceModalOpen(false)}
-          onCallComplete={handleCallComplete}
-          setActiveAgentId={setActiveAgentId}
-        />
+          {/* Screen Content */}
+          <div className="flex-1 overflow-auto p-6">
+            {activeScreen === 'dashboard' && (
+              <DashboardSection
+                calls={calls}
+                onNavigateToCallLog={handleNavigateToCallLog}
+                onStartCall={() => setVoiceModalOpen(true)}
+              />
+            )}
+            {activeScreen === 'calllog' && (
+              <CallLogSection
+                calls={calls}
+                selectedCallId={selectedCallId}
+                onSelectCall={setSelectedCallId}
+                onUpdateCall={handleUpdateCall}
+                setActiveAgentId={setActiveAgentId}
+              />
+            )}
+            {activeScreen === 'settings' && (
+              <SettingsSection />
+            )}
+          </div>
+        </main>
       </div>
-    </ErrorBoundary>
+
+      {/* Voice Call Modal */}
+      <VoiceCallModal
+        open={voiceModalOpen}
+        onClose={() => setVoiceModalOpen(false)}
+        onCallComplete={handleCallComplete}
+        setActiveAgentId={setActiveAgentId}
+      />
+    </div>
   )
 }
